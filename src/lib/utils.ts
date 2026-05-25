@@ -8,24 +8,14 @@ import Hls from 'hls.js';
 export function getImageProxyUrl(): string | null {
   if (typeof window === 'undefined') return null;
 
-  // 本地未开启图片代理，则不使用代理
-  const enableImageProxy = localStorage.getItem('enableImageProxy');
-  if (enableImageProxy !== null) {
-    if (!JSON.parse(enableImageProxy) as boolean) {
-      return null;
-    }
-  }
-
-  const localImageProxy = localStorage.getItem('imageProxyUrl');
-  if (localImageProxy != null) {
-    return localImageProxy.trim() ? localImageProxy.trim() : null;
-  }
-
-  // 如果未设置，则使用全局对象
+  // 强制使用服务端配置，不读取本地开关。
   const serverImageProxy = (window as any).RUNTIME_CONFIG?.IMAGE_PROXY;
-  return serverImageProxy && serverImageProxy.trim()
-    ? serverImageProxy.trim()
-    : null;
+  if (serverImageProxy && serverImageProxy.trim()) {
+    return serverImageProxy.trim();
+  }
+
+  // 未配置外部代理时，默认使用内置图片代理。
+  return '/api/image-proxy?url=';
 }
 
 /**
@@ -33,6 +23,10 @@ export function getImageProxyUrl(): string | null {
  */
 export function processImageUrl(originalUrl: string): string {
   if (!originalUrl) return originalUrl;
+
+  if (!isAbsoluteHttpUrl(originalUrl)) {
+    return originalUrl;
+  }
 
   const proxyUrl = getImageProxyUrl();
   if (!proxyUrl) {
@@ -44,6 +38,15 @@ export function processImageUrl(originalUrl: string): string {
   }
 
   return `${proxyUrl}${encodeURIComponent(originalUrl)}`;
+}
+
+function isAbsoluteHttpUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+  } catch {
+    return false;
+  }
 }
 
 function isDoubanImageUrl(url: string): boolean {
@@ -65,20 +68,7 @@ function isDoubanImageUrl(url: string): boolean {
 export function getDoubanProxyUrl(): string | null {
   if (typeof window === 'undefined') return null;
 
-  // 本地未开启豆瓣代理，则不使用代理
-  const enableDoubanProxy = localStorage.getItem('enableDoubanProxy');
-  if (enableDoubanProxy !== null) {
-    if (!JSON.parse(enableDoubanProxy) as boolean) {
-      return null;
-    }
-  }
-
-  const localDoubanProxy = localStorage.getItem('doubanProxyUrl');
-  if (localDoubanProxy != null) {
-    return localDoubanProxy.trim() ? localDoubanProxy.trim() : null;
-  }
-
-  // 如果未设置，则使用全局对象
+  // 强制使用服务端配置，不读取本地开关。
   const serverDoubanProxy = (window as any).RUNTIME_CONFIG?.DOUBAN_PROXY;
   return serverDoubanProxy && serverDoubanProxy.trim()
     ? serverDoubanProxy.trim()

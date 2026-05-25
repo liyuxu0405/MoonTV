@@ -65,7 +65,7 @@ async function fetchWithTimeout(
  * 检查是否应该使用客户端获取豆瓣数据
  */
 export function shouldUseDoubanClient(): boolean {
-  return getDoubanProxyUrl() !== null;
+  return false;
 }
 
 /**
