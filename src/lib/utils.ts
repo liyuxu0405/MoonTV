@@ -35,9 +35,28 @@ export function processImageUrl(originalUrl: string): string {
   if (!originalUrl) return originalUrl;
 
   const proxyUrl = getImageProxyUrl();
-  if (!proxyUrl) return originalUrl;
+  if (!proxyUrl) {
+    // 豆瓣图片在浏览器直连时可能被 418 拦截，自动回退到内置代理。
+    if (isDoubanImageUrl(originalUrl)) {
+      return `/api/image-proxy?url=${encodeURIComponent(originalUrl)}`;
+    }
+    return originalUrl;
+  }
 
   return `${proxyUrl}${encodeURIComponent(originalUrl)}`;
+}
+
+function isDoubanImageUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url);
+    return (
+      parsed.protocol === 'https:' &&
+      (parsed.hostname === 'doubanio.com' ||
+        parsed.hostname.endsWith('.doubanio.com'))
+    );
+  } catch {
+    return false;
+  }
 }
 
 /**
