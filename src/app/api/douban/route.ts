@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 
-import { getCacheTime } from '@/lib/config';
+import { getCacheTime, getConfig } from '@/lib/config';
 import { DoubanItem, DoubanResult } from '@/lib/types';
 
 interface DoubanApiResponse {
@@ -13,35 +13,48 @@ interface DoubanApiResponse {
 }
 
 async function fetchDoubanData(url: string): Promise<DoubanApiResponse> {
-  // 添加超时控制
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 10000); // 10秒超时
+  const config = await getConfig();
+  const proxyPrefix = config.SiteConfig.DoubanProxy?.trim();
+  const targets = [url];
 
-  // 设置请求选项，包括信号和头部
-  const fetchOptions = {
-    signal: controller.signal,
-    headers: {
-      'User-Agent':
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
-      Referer: 'https://movie.douban.com/',
-      Accept: 'application/json, text/plain, */*',
-    },
-  };
-
-  try {
-    // 尝试直接访问豆瓣API
-    const response = await fetch(url, fetchOptions);
-    clearTimeout(timeoutId);
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! Status: ${response.status}`);
-    }
-
-    return await response.json();
-  } catch (error) {
-    clearTimeout(timeoutId);
-    throw error;
+  if (proxyPrefix) {
+    targets.push(`${proxyPrefix}${encodeURIComponent(url)}`);
   }
+
+  let lastError: Error | null = null;
+
+  for (const target of targets) {
+    // 添加超时控制
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10秒超时
+
+    // 设置请求选项，包括信号和头部
+    const fetchOptions = {
+      signal: controller.signal,
+      headers: {
+        'User-Agent':
+          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
+        Referer: 'https://movie.douban.com/',
+        Accept: 'application/json, text/plain, */*',
+      },
+    };
+
+    try {
+      const response = await fetch(target, fetchOptions);
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      clearTimeout(timeoutId);
+      lastError = error as Error;
+    }
+  }
+
+  throw lastError || new Error('获取豆瓣列表数据失败');
 }
 
 export const runtime = 'edge';
@@ -125,35 +138,55 @@ export async function GET(request: Request) {
   }
 }
 
-function handleTop250(pageStart: number) {
-  const target = `https://movie.douban.com/top250?start=${pageStart}&filter=`;
+async function fetchDoubanHtml(url: string): Promise<string> {
+  const config = await getConfig();
+  const proxyPrefix = config.SiteConfig.DoubanProxy?.trim();
+  const targets = [url];
 
-  // 直接使用 fetch 获取 HTML 页面
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 10000);
+  if (proxyPrefix) {
+    targets.push(`${proxyPrefix}${encodeURIComponent(url)}`);
+  }
 
-  const fetchOptions = {
-    signal: controller.signal,
-    headers: {
-      'User-Agent':
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
-      Referer: 'https://movie.douban.com/',
-      Accept:
-        'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-    },
-  };
+  let lastError: Error | null = null;
 
-  return fetch(target, fetchOptions)
-    .then(async (fetchResponse) => {
+  for (const target of targets) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+    const fetchOptions = {
+      signal: controller.signal,
+      headers: {
+        'User-Agent':
+          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
+        Referer: 'https://movie.douban.com/',
+        Accept:
+          'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+      },
+    };
+
+    try {
+      const fetchResponse = await fetch(target, fetchOptions);
       clearTimeout(timeoutId);
 
       if (!fetchResponse.ok) {
         throw new Error(`HTTP error! Status: ${fetchResponse.status}`);
       }
 
-      // 获取 HTML 内容
-      const html = await fetchResponse.text();
+      return await fetchResponse.text();
+    } catch (error) {
+      clearTimeout(timeoutId);
+      lastError = error as Error;
+    }
+  }
 
+  throw lastError || new Error('获取豆瓣 Top250 数据失败');
+}
+
+function handleTop250(pageStart: number) {
+  const target = `https://movie.douban.com/top250?start=${pageStart}&filter=`;
+
+  return fetchDoubanHtml(target)
+    .then(async (html) => {
       // 通过正则同时捕获影片 id、标题、封面以及评分
       const moviePattern =
         /<div class="item">[\s\S]*?<a[^>]+href="https?:\/\/movie\.douban\.com\/subject\/(\d+)\/"[\s\S]*?<img[^>]+alt="([^"]+)"[^>]*src="([^"]+)"[\s\S]*?<span class="rating_num"[^>]*>([^<]*)<\/span>[\s\S]*?<\/div>/g;
@@ -194,7 +227,6 @@ function handleTop250(pageStart: number) {
       });
     })
     .catch((error) => {
-      clearTimeout(timeoutId);
       return NextResponse.json(
         {
           error: '获取豆瓣 Top250 数据失败',

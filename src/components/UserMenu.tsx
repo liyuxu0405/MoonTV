@@ -26,8 +26,6 @@ export const UserMenu: React.FC = () => {
 
   // 设置相关状态
   const [defaultAggregateSearch, setDefaultAggregateSearch] = useState(true);
-  const [doubanProxyUrl, setDoubanProxyUrl] = useState('');
-  const [imageProxyUrl, setImageProxyUrl] = useState('');
   const [enableOptimization, setEnableOptimization] = useState(true);
 
   // 修改密码相关状态
@@ -66,14 +64,6 @@ export const UserMenu: React.FC = () => {
       if (savedAggregateSearch !== null) {
         setDefaultAggregateSearch(JSON.parse(savedAggregateSearch));
       }
-
-      const defaultDoubanProxy =
-        (window as any).RUNTIME_CONFIG?.DOUBAN_PROXY || '';
-      setDoubanProxyUrl(defaultDoubanProxy);
-
-      const defaultImageProxy =
-        (window as any).RUNTIME_CONFIG?.IMAGE_PROXY || '';
-      setImageProxyUrl(defaultImageProxy);
 
       const savedEnableOptimization =
         localStorage.getItem('enableOptimization');
@@ -207,14 +197,8 @@ export const UserMenu: React.FC = () => {
   };
 
   const handleResetSettings = () => {
-    const defaultImageProxy = (window as any).RUNTIME_CONFIG?.IMAGE_PROXY || '';
-    const defaultDoubanProxy =
-      (window as any).RUNTIME_CONFIG?.DOUBAN_PROXY || '';
-
     setDefaultAggregateSearch(true);
     setEnableOptimization(true);
-    setDoubanProxyUrl(defaultDoubanProxy);
-    setImageProxyUrl(defaultImageProxy);
 
     if (typeof window !== 'undefined') {
       localStorage.setItem('defaultAggregateSearch', JSON.stringify(true));
@@ -453,95 +437,6 @@ export const UserMenu: React.FC = () => {
 
           {/* 分割线 */}
           <div className='border-t border-gray-200 dark:border-gray-700'></div>
-
-          {/* 豆瓣代理开关 */}
-          <div className='flex items-center justify-between'>
-            <div>
-              <h4 className='text-sm font-medium text-gray-700 dark:text-gray-300'>
-                豆瓣代理
-              </h4>
-              <p className='text-xs text-gray-500 dark:text-gray-400 mt-1'>
-                已由服务器强制启用，客户端不可修改
-              </p>
-            </div>
-            <label className='flex items-center cursor-pointer'>
-              <div className='relative'>
-                <input
-                  type='checkbox'
-                  className='sr-only peer'
-                  checked={true}
-                  disabled
-                />
-                <div className='w-11 h-6 bg-gray-300 rounded-full peer-checked:bg-green-500 transition-colors dark:bg-gray-600'></div>
-                <div className='absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform peer-checked:translate-x-5'></div>
-              </div>
-            </label>
-          </div>
-
-          {/* 豆瓣代理地址设置 */}
-          <div className='space-y-3'>
-            <div>
-              <h4 className='text-sm font-medium text-gray-700 dark:text-gray-300'>
-                豆瓣代理地址
-              </h4>
-              <p className='text-xs text-gray-500 dark:text-gray-400 mt-1'>
-                由服务器统一管理，客户端不可修改
-              </p>
-            </div>
-            <input
-              type='text'
-              className='w-full px-3 py-2 border rounded-md text-sm border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 text-gray-400 dark:text-gray-500 cursor-not-allowed'
-              placeholder='由服务器端固定'
-              value={doubanProxyUrl || '服务器强制代理'}
-              disabled
-            />
-          </div>
-
-          {/* 分割线 */}
-          <div className='border-t border-gray-200 dark:border-gray-700'></div>
-
-          {/* 图片代理开关 */}
-          <div className='flex items-center justify-between'>
-            <div>
-              <h4 className='text-sm font-medium text-gray-700 dark:text-gray-300'>
-                图片代理
-              </h4>
-              <p className='text-xs text-gray-500 dark:text-gray-400 mt-1'>
-                已由服务器强制启用，客户端不可修改
-              </p>
-            </div>
-            <label className='flex items-center cursor-pointer'>
-              <div className='relative'>
-                <input
-                  type='checkbox'
-                  className='sr-only peer'
-                  checked={true}
-                  disabled
-                />
-                <div className='w-11 h-6 bg-gray-300 rounded-full peer-checked:bg-green-500 transition-colors dark:bg-gray-600'></div>
-                <div className='absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform peer-checked:translate-x-5'></div>
-              </div>
-            </label>
-          </div>
-
-          {/* 图片代理地址设置 */}
-          <div className='space-y-3'>
-            <div>
-              <h4 className='text-sm font-medium text-gray-700 dark:text-gray-300'>
-                图片代理地址
-              </h4>
-              <p className='text-xs text-gray-500 dark:text-gray-400 mt-1'>
-                由服务器统一管理，客户端不可修改
-              </p>
-            </div>
-            <input
-              type='text'
-              className='w-full px-3 py-2 border rounded-md text-sm border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 text-gray-400 dark:text-gray-500 cursor-not-allowed'
-              placeholder='由服务器端固定'
-              value={imageProxyUrl || '服务器强制代理'}
-              disabled
-            />
-          </div>
         </div>
 
         {/* 底部说明 */}
