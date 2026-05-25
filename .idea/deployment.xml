@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="PublishConfigData" serverName="meiguo" remoteFilesAllowedToDisappearOnAutoupload="false">
+    <serverData>
+      <paths name="meiguo">
+        <serverdata>
+          <mappings>
+            <mapping deploy="/MoonTV" local="$PROJECT_DIR$" web="/" />
+          </mappings>
+        </serverdata>
+      </paths>
+      <paths name="香港">
+        <serverdata>
+          <mappings>
+            <mapping deploy="www/moontv" local="$PROJECT_DIR$" web="/" />
+          </mappings>
+        </serverdata>
+      </paths>
+    </serverData>
+  </component>
+</project>
